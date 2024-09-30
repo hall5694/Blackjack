@@ -1,24 +1,26 @@
 import os, random, time
 ranks = ("Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King")
 suits = ("Diamonds","Hearts","Spades","Clubs")
-
 card_deck = {} # dictionary to hold card deck
+num_decks = 6
 num_players = 0
 player_names = []
-player_names_for_test = ["Dealer","Bob","James","Phil","Dale","Jack"]
 padding_spaces = 35
 class_instances = []
 max_hand_size = 0
 test_mode = False
+player_names_for_test = ["Dealer","Bob","James","Phil","Dale","Jack"]
 max_players = 5
 dealers_turn = False
 
+# TODO - multiple card decks - how does this work in the real world, i.e., after each game is the whole deck re-shuffled?
+# TODO - instead of choosing a random card from the deck, the program should actually "shuffle" the deck and then pull in order
 # TODO - wagers
 # TODO - keep player names between games
 # TODO - split, double down, etc
 # TODO - statistics
 # TODO - graphics
-# TODO - multiple card decks
+
 
 class Class_player():
   global player_names, class_instances, max_hand_size
@@ -75,7 +77,7 @@ class Class_player():
     # get base sums not counting aces as 11
     card_value_sum = 0
     for value in self.cards.values():
-      card_value_sum = card_value_sum + value
+      card_value_sum = card_value_sum + value[0]
 
     self.list_card_value_sums.append(card_value_sum)
 
@@ -93,10 +95,12 @@ class Class_player():
     new_card_dict = {}
     random_card_key = random.choice(list(card_deck.keys()))
     random_card_value = card_deck[random_card_key]
-    if random_card_value == 1:
+    if random_card_value[0] == 1:
       self.has_ace = True
     new_card_dict[random_card_key] = random_card_value
-    card_deck.pop(random_card_key)
+    card_deck[random_card_key][1] = card_deck[random_card_key][1] - 1
+    if card_deck[random_card_key][1] == 0: # no more of this card left in the deck (multiple decks)
+      card_deck.pop(random_card_key)
     return new_card_dict
 
   def player_action(self):
@@ -270,18 +274,20 @@ def clear_screen():
 def generate_full_deck():
   global card_deck
   card_deck = {}
+  
   for suit in suits: # suits = ("Diamonds","Hearts","Spade","Clubs")
     for rank in ranks: # ranks = ("Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King")
       current_card = rank + " of " + suit
       current_value = ranks.index(rank) + 1
       if current_value > 10:
         current_value = 10
-      card_deck[current_card] = current_value
+      card_deck[current_card] = [current_value,num_decks]
 
 def show_table(): # show the card table / all players
   clear_screen()
-
-  global class_instances, max_hand_size # is global necessary since these are not being edited
+  print_deck()
+  # TODO - remove these if functionality still exists - global max_hand_size # is global necessary since these are not being edited
+  
   # header
   str_padding = get_padding_spaces(2,"")
   print(str_padding + "Blackjack")
@@ -365,6 +371,12 @@ def show_table(): # show the card table / all players
   print(str_sums)
   print(str_status)
 
+def print_deck():
+  for card_key in card_deck.keys():
+    if card_deck[card_key][1] < 6:
+      print(f"{card_key}  - {card_deck[card_key][1]}")
+
+    
 def get_padding_spaces(i, var):
   var = " " * ((i * padding_spaces) - len(var))
   return var
