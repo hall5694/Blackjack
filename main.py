@@ -1,7 +1,8 @@
 import os, random, time
 ranks = ("Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King")
 suits = ("Diamonds","Hearts","Spades","Clubs")
-card_deck = {} # dictionary to hold card deck
+card_deck_ordered = {} # dictionary to hold ordered card deck (before shuffling)
+card_deck_shuffled = [] # dictionary to hold shuffled card deck
 num_decks = 6
 num_players = 0
 player_names = []
@@ -13,13 +14,15 @@ player_names_for_test = ["Dealer","Bob","James","Phil","Dale","Jack"]
 max_players = 5
 dealers_turn = False
 
-# TODO - multiple card decks - how does this work in the real world, i.e., after each game is the whole deck re-shuffled?
 # TODO - instead of choosing a random card from the deck, the program should actually "shuffle" the deck and then pull in order
+# TODO - multiple card decks - how does this work in the real world, i.e., after each game is the whole deck re-shuffled?
+#        Deck is reshuffled when cut card is reached, new dealer arrives, player arrives at dead table, 
 # TODO - wagers
 # TODO - keep player names between games
 # TODO - split, double down, etc
 # TODO - statistics
 # TODO - graphics
+# TODO - proper shuffle procedure Different for number of decks, e.g. Single deck = Strip, Riffle, Strip, Riffle, Box, Riffle, Cut, Burn
 
 
 class Class_player():
@@ -46,7 +49,7 @@ class Class_player():
             print("  Player %s : %s"%(player_names.index(cn), cn))
 
         # get new player name
-        if test_mode == True:
+        if test_mode == True: # just for testing - auto populate player names
           self.name = player_names_for_test[player_number]
         else:
           self.name = input("Enter player " + str(player_number) + " name: ")
@@ -77,7 +80,7 @@ class Class_player():
     # get base sums not counting aces as 11
     card_value_sum = 0
     for value in self.cards.values():
-      card_value_sum = card_value_sum + value[0]
+      card_value_sum = card_value_sum + value
 
     self.list_card_value_sums.append(card_value_sum)
 
@@ -86,22 +89,20 @@ class Class_player():
 
   def hit(self):
     global max_hand_size
-    self.cards.update(self.get_random_card())
+    self.cards.update(self.get_card())
     if self.player_number != 0 and len(self.cards) > max_hand_size:
       max_hand_size = len(self.cards)
     self.generate_list_of_sum_of_card_values()
 
-  def get_random_card(self):
-    new_card_dict = {}
-    random_card_key = random.choice(list(card_deck.keys()))
-    random_card_value = card_deck[random_card_key]
-    if random_card_value[0] == 1:
+  def get_card(self):
+    global card_deck_shuffled
+    next_card_dict = card_deck_shuffled[0] # next card in the deck = dictionary, e.g. {"Ace of Diamonds",1} 
+    card_deck_shuffled.pop(0) # remove the card from the deck
+    for val in next_card_dict.values():
+      next_card_value = val
+    if next_card_value == 1:
       self.has_ace = True
-    new_card_dict[random_card_key] = random_card_value
-    card_deck[random_card_key][1] = card_deck[random_card_key][1] - 1
-    if card_deck[random_card_key][1] == 0: # no more of this card left in the deck (multiple decks)
-      card_deck.pop(random_card_key)
-    return new_card_dict
+    return next_card_dict
 
   def player_action(self):
     in_play = True
@@ -246,7 +247,7 @@ def reset_game():
 def initialize_game():
   global num_players
   generate_full_deck()
-  #print(card_deck)
+  #print(card_deck_shuffled)
 
   # get number of players
   cl = True
@@ -272,8 +273,8 @@ def clear_screen():
   os.system('cls') # clear the command window
 
 def generate_full_deck():
-  global card_deck
-  card_deck = {}
+  global card_deck_ordered
+  card_deck_ordered = {}
   
   for suit in suits: # suits = ("Diamonds","Hearts","Spade","Clubs")
     for rank in ranks: # ranks = ("Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King")
@@ -281,11 +282,24 @@ def generate_full_deck():
       current_value = ranks.index(rank) + 1
       if current_value > 10:
         current_value = 10
-      card_deck[current_card] = [current_value,num_decks]
+      card_deck_ordered[current_card] = [current_value,num_decks]
+      
+  shuffle_deck()
+
+def shuffle_deck(): # takes in non-shuffled, i.e. in order, card deck. Picks random card from ordered card deck and puts in new deck
+  global card_deck_ordered, card_deck_shuffled
+  card_deck_shuffled = []
+  while len(card_deck_ordered) > 0:
+    random_card_key = random.choice(list(card_deck_ordered.keys()))
+    random_card_value = card_deck_ordered[random_card_key]
+    card_deck_shuffled.append({random_card_key:random_card_value[0]})
+    card_deck_ordered[random_card_key][1] = card_deck_ordered[random_card_key][1] - 1
+    if card_deck_ordered[random_card_key][1] == 0: # no more of this card left in the deck (multiple decks)
+      card_deck_ordered.pop(random_card_key)
 
 def show_table(): # show the card table / all players
   clear_screen()
-  print_deck()
+  # print_deck()
   # TODO - remove these if functionality still exists - global max_hand_size # is global necessary since these are not being edited
   
   # header
@@ -372,15 +386,12 @@ def show_table(): # show the card table / all players
   print(str_status)
 
 def print_deck():
-  for card_key in card_deck.keys():
-    if card_deck[card_key][1] < 6:
-      print(f"{card_key}  - {card_deck[card_key][1]}")
-
+  for card_dict in card_deck_shuffled:
+    print(card_dict)
     
 def get_padding_spaces(i, var):
   var = " " * ((i * padding_spaces) - len(var))
   return var
-
 
 if __name__ == "__main__":
   main()
